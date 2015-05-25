@@ -2,13 +2,22 @@
 #include <iostream>
 #include <chrono>
 #include <random>
+#include <set>
 
-#include <ctime>
+#include <experimental/optional>
+
+namespace std
+{
+    using experimental::optional;
+}
+
+namespace SchafKopf
+{
 
 class Environment
 {
 public:
-    const std::default_random_engine& engine() const { return m_engine; }
+    std::default_random_engine& engine() { return m_engine; }
 
     static Environment &instance()
     {
@@ -88,13 +97,24 @@ static const Value values[] = {
 
 struct Card
 {
-    CardType card;
+    CardType cardType;
     Color color;
+
+    bool operator<(const Card& other)
+    {
+        if (other.color == color)
+            return cardType < other.cardType;
+        return color < other.color;
+    }
 };
+
+}
+
+using namespace SchafKopf;
 
 std::ostream& operator<<(std::ostream& os, const Card& dt)
 {
-    os << colorNames[dt.color] << ' ' << cardTypeNames[dt.card];
+    os << colorNames[dt.color] << ' ' << cardTypeNames[dt.cardType];
     return os;
 }
 
@@ -110,7 +130,7 @@ struct Deck
 
     void shuffle()
     {
-        std::random_shuffle(cards, cards + numCards);
+        std::shuffle(cards, cards + numCards, Environment::instance().engine());
     }
 
     const Card* begin() const { return cards; }
@@ -120,16 +140,110 @@ struct Deck
     Card cards[numCards];
 };
 
-int main()
+struct Player
 {
-    std::srand(unsigned(std::time(nullptr)));
+    void deal(const Card cards[8])
+    {
+        for (int i = 0; i < maxCards; ++i)
+            m_cards[i] = cards[i];
+    }
+
+    static constexpr int maxCards = 8;
+
+    std::optional<Card> m_cards[maxCards];
+};
+
+struct DiscardPile
+{
+    std::optional<Card> m_cards[Deck::numCards];
+};
+
+struct Game
+{
+    enum Type
+    {
+        Sau,
+        FarbGeier,
+        Geier,
+        FarbWenz,
+        Wenz,
+        Solo
+    };
 
     Deck deck;
-    deck.shuffle();
+    DiscardPile pile;
+    Player players[4];
 
-    for (const Card &card : deck) {
-        std::cout << card << std::endl;
+    Type type;
+    Color color;
+
+    bool sticht(const Card& card, const Card& other) const
+    {
+        // ### other game types
+        if (card.cardType == CardType::Ober) {
+            if (other.cardType == CardType::Ober)
+                return other.color < card.color;
+            else
+                return false;
+        }
+
+        if (card.cardType == CardType::Unter) {
+            if (other.cardType == CardType::Ober)
+                return true;
+            else if (other.cardType == CardType::Unter)
+                return other.color < card.color;
+            else
+                return false;
+        }
+
+        if (card.color == color) {
+            if (other.cardType == CardType::Ober || other.cardType == CardType::Unter)
+                return true;
+            if (other.color == color)
+                return other.cardType < card.cardType;
+            else
+                return false;
+        }
+
+        if (other.cardType == CardType::Ober || other.cardType == CardType::Unter || other.color == color)
+            return true;
+        if (card.color == other.color)
+            return other.cardType < card.cardType;
+        return false;
     }
+
+    double stichProbability(const Player& player, const Card& card) const;
+};
+
+double Game::stichProbability(const Player &player, const Card &card) const
+{
+    std::set<Card> higherCards;
+
+    return 0.0;
+}
+
+int main()
+{
+    Environment::instance();
+
+    Game game;
+    game.deck.shuffle();
+
+    game.type = Game::Solo;
+    game.color = Color::Herz;
+
+    for (int i = 0; i < 4; ++i) {
+        game.players[i].deal(game.deck.begin() + (i * 8));
+
+        std::cout << "Player " << i + 1 << std::endl;
+        for (std::optional<Card> &card : game.players[i].m_cards)
+            std::cout << "    " << *card << std::endl;
+    }
+
+    //std::cout << game.stichProbability(game.players[0], *game.players[0].m_cards[0]) << std::endl;
+    std::cout << game.sticht(*game.players[0].m_cards[0], *game.players[1].m_cards[0]) << std::endl;
+    std::cout << game.sticht(*game.players[0].m_cards[0], *game.players[2].m_cards[0]) << std::endl;
+    std::cout << game.sticht(*game.players[0].m_cards[0], *game.players[3].m_cards[0]) << std::endl;
 
     return 0;
 }
