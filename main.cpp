@@ -37,6 +37,13 @@ enum Color
 
 constexpr int numColors = 4;
 
+static const char *colorNames[numColors] = {
+    "Eichel",
+    "Gras",
+    "Herz",
+    "Schelln"
+};
+
 enum CardType
 {
     Ass,
@@ -50,6 +57,17 @@ enum CardType
 };
 
 constexpr int numCardTypes = 8;
+
+static const char *cardTypeNames[numCardTypes] = {
+    "Ass",
+    "Zehner",
+    "Koenig",
+    "Ober",
+    "Unter",
+    "Neuner",
+    "Achter",
+    "Siebner"
+};
 
 struct Value
 {
@@ -74,6 +92,12 @@ struct Card
     Color color;
 };
 
+std::ostream& operator<<(std::ostream& os, const Card& dt)
+{
+    os << colorNames[dt.color] << ' ' << cardTypeNames[dt.card];
+    return os;
+}
+
 struct Deck
 {
     Deck()
@@ -89,11 +113,23 @@ struct Deck
         std::random_shuffle(cards, cards + numCards);
     }
 
+    const Card* begin() const { return cards; }
+    const Card* end() const { return cards + numCards; }
+
     static constexpr int numCards = numColors * numCardTypes;
     Card cards[numCards];
 };
 
 int main()
 {
-    std::srand ( unsigned ( std::time(nullptr) ) );
+    std::srand(unsigned(std::time(nullptr)));
+
+    Deck deck;
+    deck.shuffle();
+
+    for (const Card &card : deck) {
+        std::cout << card << std::endl;
+    }
+
+    return 0;
 }
