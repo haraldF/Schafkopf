@@ -100,12 +100,15 @@ struct Card
     CardType cardType;
     Color color;
 
-    bool operator<(const Card& other)
+    bool operator<(const Card& other) const
     {
         if (other.color == color)
             return cardType < other.cardType;
         return color < other.color;
     }
+
+    bool operator==(const Card& other) const { return cardType == other.cardType && color == other.color; }
+    bool operator!=(const Card& other) const { return !(*this == other); }
 };
 
 }
@@ -155,6 +158,16 @@ struct Player
 
 struct DiscardPile
 {
+    bool contains(const Card& card) const
+    {
+        for(const auto &c : m_cards) {
+            if (c && *c == card)
+                return true;
+        }
+
+        return false;
+    }
+
     std::optional<Card> m_cards[Deck::numCards];
 };
 
@@ -212,12 +225,35 @@ struct Game
         return false;
     }
 
+    bool isTrump(const Card& card) const
+    {
+        return card.cardType == CardType::Ober
+                || card.cardType == CardType::Unter
+                || card.color == color;
+    }
+
     double stichProbability(const Player& player, const Card& card) const;
+    double passProbabilty(const Player& player, const Card& card) const;
 };
 
-double Game::stichProbability(const Player &player, const Card &card) const
+double Game::stichProbability(const Player& player, const Card& card) const
 {
     std::set<Card> higherCards;
+
+    return 0.0;
+}
+
+double Game::passProbabilty(const Player& player, const Card& card) const
+{
+    if (isTrump(card))
+        return 0.0;
+
+    int higherCards = card.cardType;
+    int trumps = 8 + 8;
+
+    // ### check own cards, reduce higherCards + trumps
+
+    int lowerCards = numCardTypes - (card.cardType + 1);
 
     return 0.0;
 }
