@@ -1,10 +1,14 @@
+#include <boost/math/special_functions/binomial.hpp>
+
+#include <experimental/optional>
+
 #include <algorithm>
 #include <iostream>
 #include <chrono>
 #include <random>
 #include <set>
 
-#include <experimental/optional>
+#include <stdio.h>
 
 namespace std
 {
@@ -34,6 +38,7 @@ private:
     }
 
     Environment(const Environment&) = delete;
+    Environment& operator=(const Environment&) = delete;
 };
 
 enum Color
@@ -255,13 +260,57 @@ double Game::passProbabilty(const Player& player, const Card& card) const
 
     int lowerCards = numCardTypes - (card.cardType + 1);
 
+
+
     return 0.0;
 }
+
+struct CLI
+{
+    CLI()
+    {
+        newGame();
+    }
+
+    void newGame() {
+        game.deck.shuffle();
+        game.type = Game::Solo;
+        game.color = Color::Herz;
+
+        for (int i = 0; i < 4; ++i)
+            game.players[i].deal(game.deck.begin() + (i * 8));
+    }
+
+    void printPrompt()
+    {
+        printf("Schaf> ");
+        fflush(stdout);
+    }
+
+    void start()
+    {
+        printPrompt();
+        int c = 0;
+        do {
+            c = getchar();
+
+            switch (c) {
+            case '\n':
+                printPrompt();
+                break;
+            }
+
+        } while (c != 'q' && c != EOF);
+    }
+
+    Game game;
+};
 
 int main()
 {
     Environment::instance();
 
+    /*
     Game game;
     game.deck.shuffle();
 
@@ -280,6 +329,12 @@ int main()
     std::cout << game.sticht(*game.players[0].m_cards[0], *game.players[1].m_cards[0]) << std::endl;
     std::cout << game.sticht(*game.players[0].m_cards[0], *game.players[2].m_cards[0]) << std::endl;
     std::cout << game.sticht(*game.players[0].m_cards[0], *game.players[3].m_cards[0]) << std::endl;
+
+    std::cout << (int)boost::math::binomial_coefficient<double>(32, 8) << std::endl;
+    */
+
+    CLI cli;
+    cli.start();
 
     return 0;
 }
