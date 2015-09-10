@@ -381,7 +381,7 @@ struct Game
 
         int topPlayer = m_activePlayer;
         for (int i = 1; i < numPlayers; ++i) {
-            if (sticht(pile[i], pile[topPlayer]))
+            if (sticht(pile[topPlayer], pile[i]))
                 topPlayer = i;
         }
 

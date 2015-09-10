@@ -32,7 +32,7 @@ struct CLI
         if (game.numStiche == 8) {
             std::cout << "Game over" << std::endl;
             for (int i = 0; i < numPlayers; ++i)
-                std::cout << "Player " << i + 1 << ": " << game.players[i].points << " points" << std::endl;
+                std::cout << "    Player " << i + 1 << ": " << game.players[i].points << " points" << std::endl;
             game.reset();
         }
     }

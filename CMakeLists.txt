@@ -11,9 +11,12 @@ endif()
 add_executable(schaf main.cpp Schafkopf.h)
 target_include_directories(schaf PRIVATE ${Boost_INCLUDE_DIRS})
 
+enable_testing()
+
 aux_source_directory(gtest GTEST_SOURCES)
 add_executable(schaftest test.cpp ${GTEST_SOURCES})
 target_include_directories(schaftest PRIVATE ${Boost_INCLUDE_DIRS} gtest)
+add_test(NAME schaftest COMMAND schaftest)
 
 set_property(TARGET schaf PROPERTY CXX_STANDARD 14)
 set_property(TARGET schaftest PROPERTY CXX_STANDARD 14)
