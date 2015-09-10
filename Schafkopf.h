@@ -167,17 +167,29 @@ struct Stich
     std::pair<int, Card> cards[4];
 };
 
+struct PlayerId
+{
+    PlayerId(int playerId = 0)
+        : id(playerId)
+    {}
+
+    int operator++() { return ++id; }
+    int operator++(int) { return id++; }
+
+    int operator--() { return --id; }
+    int operator--(int) { return id--; }
+
+    operator int() const { return int(id); }
+
+    unsigned char id : 2;
+};
+
 struct Player
 {
     Player()
         : numStiche(0),
           points(0)
     {}
-
-    static int nextPlayer(int player)
-    {
-        return player == 3 ? 0 : player + 1;
-    }
 
     void reset()
     {
@@ -213,7 +225,7 @@ struct Player
         return false;
     }
 
-    void addStich(Card cards[4], int activePlayer)
+    void addStich(Card cards[4], PlayerId activePlayer)
     {
         assert(numStiche >= 0 && numStiche < 8);
         assert(activePlayer >= 0 && activePlayer < numPlayers);
@@ -221,7 +233,7 @@ struct Player
         for (int i = 0; i < numPlayers; ++i) {
             points += cards[i].points();
             m_stiche[numStiche].cards[i] = std::make_pair(activePlayer, std::move(cards[i]));
-            activePlayer = nextPlayer(activePlayer);
+            ++activePlayer;
         }
         ++numStiche;
     }
@@ -268,12 +280,15 @@ struct DiscardPile
 struct ActivePile
 {
     ActivePile()
-        : numCards(0)
+        : firstPlayer(0),
+          numCards(0)
     {}
 
-    void put(Card card)
+    void put(Card card, int playerId)
     {
         assert(numCards >= 0 && numCards <= 3);
+        if (numCards == 0)
+            firstPlayer = playerId;
         m_cards[numCards++] = std::move(card);
     }
 
@@ -286,8 +301,16 @@ struct ActivePile
         numCards = 0;
     }
 
+    int firstPlayer;
     int numCards;
     std::optional<Card> m_cards[numPlayers];
+};
+
+class AI
+{
+public:
+    virtual void cardPlayed(const ActivePile& pile, int activePlayer) = 0;
+    virtual int doPlayCard(const ActivePile& pile) = 0;
 };
 
 struct Game
@@ -303,9 +326,9 @@ struct Game
     };
 
     Player players[numPlayers];
+    AI *ais[numPlayers];
 
-    // use a bitfield, so it'll wrap when calling operator++
-    unsigned char m_activePlayer : 2;
+    PlayerId m_activePlayer;
     int m_lastStichPlayer;
     int numStiche;
 
@@ -319,157 +342,62 @@ struct Game
     Game()
         : discardPile{players}
     {
+        ais[0] = ais[1] = ais[2] = ais[3] = nullptr;
         reset();
     }
 
-    void reset()
-    {
-        m_activePlayer = 0;
-        m_lastStichPlayer = 0;
-        numStiche = 0;
+    void reset();
 
-        Card cards[numPlayers];
-        activePile.take(cards);
-
-        deck.shuffle();
-        for (int i = 0; i < numPlayers; ++i)
-            players[i].deal(deck.begin() + (i * 8));
-    }
-
-    inline Player &activePlayer()
+    inline const Player& activePlayer() const
     {
         return players[m_activePlayer];
     }
 
-    inline Player &lastStichPlayer()
+    inline Player& activePlayer()
+    {
+        return players[m_activePlayer];
+    }
+
+    inline Player& lastStichPlayer()
     {
         return players[m_lastStichPlayer];
     }
 
-    inline Card &firstPileCard()
+    inline const Card& firstPileCard() const
     {
         assert(activePile.m_cards[0]);
         return *activePile.m_cards[0];
     }
 
-    bool canPutCard(int c)
-    {
-        assert(activePlayer().m_cards[c]);
-
-        const Card &card = *activePlayer().m_cards[c];
-
-        if (activePile.numCards == 0) {
-
-            if (gameType == SauSpiel) {
-                // only one rule for first card - if it's a Sauspiel, one cannot
-                // play the color of the Sau if one has the Sau, unless one can run away,
-                // see chapter 2.5 of rules
-
-                // ### TODO
-            }
-            return true;
-        }
-
-        const Card &firstCard = firstPileCard();
-        if (isTrump(firstCard)) {
-            if (hasTrump(activePlayer()))
-                return isTrump(card);
-            if (gameType == SauSpiel) {
-                // ### TODO - cannot play Sau
-            }
-            return true; // trump is played but we don't have trump - play anything
-        }
-
-        if (hasColor(activePlayer(), firstCard.color)) {
-            if (gameType == SauSpiel) {
-                // ### TODO - must play Sau
-            }
-            return card.color == firstCard.color;
-        }
-
-        return true;
-    }
+    bool canPutCard(int c) const;
 
     // figure out who won the round
-    void doStich()
-    {
-        assert(activePile.numCards == numPlayers);
-
-        Card pile[numPlayers];
-        activePile.take(pile);
-
-        int topPlayer = m_activePlayer;
-        for (int i = 1; i < numPlayers; ++i) {
-            if (sticht(pile[topPlayer], pile[i]))
-                topPlayer = i;
-        }
-
-        players[topPlayer].addStich(pile, m_activePlayer);
-
-        // remember the player who did the last stich
-        m_lastStichPlayer = topPlayer;
-        // the player to come out is the player who scored last
-        m_activePlayer = topPlayer;
-
-        ++numStiche;
-    }
+    void doStich();
 
     // active player puts card
-    void putCard(int c)
-    {
-        assert(activePlayer().m_cards[c]);
-        assert(canPutCard(c));
+    void putCard(int c);
 
-        Card card = *activePlayer().takeCard(c);
-        activePile.put(std::move(card));
-
-        m_activePlayer++;
-
-        // current round over - figure out the winner
-        if (activePile.numCards == numPlayers)
-            doStich();
-    }
-
-    bool sticht(const Card& card, const Card& other) const
-    {
-        // ### other game types
-        if (card.cardType == CardType::Ober) {
-            if (other.cardType == CardType::Ober)
-                return other.color < card.color;
-            else
-                return false;
-        }
-
-        if (card.cardType == CardType::Unter) {
-            if (other.cardType == CardType::Ober)
-                return true;
-            else if (other.cardType == CardType::Unter)
-                return other.color < card.color;
-            else
-                return false;
-        }
-
-        if (card.color == gameColor) {
-            if (other.cardType == CardType::Ober || other.cardType == CardType::Unter)
-                return true;
-            if (other.color == gameColor)
-                return other.cardType < card.cardType;
-            else
-                return false;
-        }
-
-        if (other.cardType == CardType::Ober || other.cardType == CardType::Unter || other.color == gameColor)
-            return true;
-        if (card.color == other.color)
-            return other.cardType < card.cardType;
-        return false;
-    }
+    bool sticht(const Card& card, const Card& other) const;
 
     bool isTrump(const Card& card) const
     {
-        return card.cardType == CardType::Ober
-                || card.cardType == CardType::Unter
-                || card.color == gameColor;
+        switch (gameType) {
+        case Solo:
+        case SauSpiel:
+            return card.cardType == CardType::Ober
+                    || card.cardType == CardType::Unter
+                    || card.color == gameColor;
+        case Wenz:
+            return card.cardType == CardType::Unter;
+        case FarbWenz:
+            return card.cardType == CardType::Unter
+                    || card.color == gameColor;
+        case Geier:
+            return card.cardType == CardType::Ober;
+        case FarbGeier:
+            return card.cardType == CardType::Ober
+                    || card.color == gameColor;
+        }
     }
 
     bool hasTrump(const Player& player) const
@@ -494,35 +422,6 @@ struct Game
     double passProbabilty(const Player& player, const Card& card) const;
 };
 
-double Game::stichProbability(const Player& player, const Card& card) const
-{
-    std::set<Card> higherCards;
-
-    return 0.0;
 }
 
-double Game::passProbabilty(const Player& player, const Card& card) const
-{
-    /*
-    if (isTrump(card))
-        return 0.0;
-
-    int higherCards = card.cardType;
-    int trumps = 8 + 8;
-
-    // ### check own cards, reduce higherCards + trumps
-
-    int lowerCards = numCardTypes - (card.cardType + 1);
-*/
-
-
-    return 0.0;
-}
-
-}
-
-std::ostream& operator<<(std::ostream& os, const SchafKopf::Card& dt)
-{
-    os << SchafKopf::colorNames[dt.color] << ' ' << SchafKopf::cardTypeNames[dt.cardType];
-    return os;
-}
+std::ostream& operator<<(std::ostream& os, const SchafKopf::Card& dt);

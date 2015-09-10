@@ -1,10 +1,15 @@
 #include "Schafkopf.h"
+#include "RandomAi.h"
 
 using namespace SchafKopf;
 
 struct CLI
 {
     CLI()
+        : ai0{game, 0},
+          ai1{game, 1},
+          ai2{game, 2},
+          ai3{game, 3}
     {
         newGame();
     }
@@ -14,6 +19,11 @@ struct CLI
 
         game.gameType = Game::Solo;
         game.gameColor = Color::Herz;
+
+        game.ais[0] = &ai0;
+        game.ais[1] = &ai1;
+        game.ais[2] = &ai2;
+        game.ais[3] = &ai3;
     }
 
     void playCard(int c)
@@ -37,26 +47,47 @@ struct CLI
         }
     }
 
-    void printCards()
+    void printCards() const
     {
         for (int i = 0; i < numPlayers; ++i) {
-            std::cout << "Player " << i + 1 << " (" << game.players[i].points << ")" << std::endl;
+            std::cout << "Player " << i + 1 << " (" << game.players[i].points << ")";
+            if (game.m_activePlayer == i)
+                std::cout << " *** Active ***";
+            std::cout << std::endl;
             for (int j = 0; j < Player::maxCards; ++j)
                 if (game.players[i].m_cards[j])
                     std::cout << "    " << j + 1 << ": " << *game.players[i].m_cards[j] << std::endl;
         }
     }
 
-    void printPrompt()
+    static void printPrompt()
     {
         std::cout << "Schaf> " << std::flush;
     }
 
-    void printActivePile()
+    void printActivePile() const
     {
         std::cout << "Active Pile" << std::endl;
-        for (int i = 0; i < game.activePile.numCards; ++i)
-            std::cout << "    " << *game.activePile.m_cards[i] << std::endl;
+        PlayerId playerId = game.activePile.firstPlayer;
+        for (int i = 0; i < game.activePile.numCards; ++i) {
+            std::cout << "    " << "Player " << playerId++ + 1 << ": " << *game.activePile.m_cards[i] << std::endl;
+        }
+    }
+
+    AI& aiForPlayer(int player)
+    {
+        switch (player) {
+        case 0:
+            return ai0;
+        case 1:
+            return ai1;
+        case 2:
+            return ai2;
+        case 3:
+            return ai3;
+        }
+        assert(false);
+        return ai0;
     }
 
     void start()
@@ -71,6 +102,8 @@ struct CLI
 
             if (line == "p") {
                 printCards();
+            } else if (line == "pp") {
+                printActivePile();
             } else if (line == "1" || line == "2" || line == "3" || line == "4"
                       || line == "5" || line == "6" || line == "7" || line == "8") {
                 char card = line.at(0) - '1';
@@ -81,6 +114,14 @@ struct CLI
                 } else {
                     playCard(card);
                 }
+            } else if (line == "a") {
+                int card = aiForPlayer(game.m_activePlayer).doPlayCard(game.activePile);
+                std::cout << "Player " << int(game.m_activePlayer) + 1 << " plays " << *game.players[game.m_activePlayer].m_cards[card] << std::endl;
+                playCard(card);
+            } else if (line == "r") {
+                std::cout << "Reset game" << std::endl;
+                newGame();
+                printCards();
             } else {
                 std::cout << "Unknown command: " << line << std::endl;
             }
@@ -91,6 +132,10 @@ struct CLI
     }
 
     Game game;
+    RandomAi ai0;
+    RandomAi ai1;
+    RandomAi ai2;
+    RandomAi ai3;
 };
 
 int main()
