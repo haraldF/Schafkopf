@@ -149,12 +149,35 @@ struct Deck
     Card cards[numCards];
 };
 
+struct Stich
+{
+    bool contains(const Card &c) const
+    {
+        return std::find_if(begin(), end(), [&c](const std::pair<int, Card> &it) { return it.second == c; }) != end();
+    }
+
+    const std::pair<int, Card> *end() const { return cards + 4; }
+    const std::pair<int, Card> *begin() const { return cards; }
+
+    std::pair<int, Card> *end() { return cards + 4; }
+    std::pair<int, Card> *begin() { return cards; }
+
+    void reset() { std::for_each(begin(), end(), [](std::pair<int, Card> &c) { c.first = -1; c.second = Card{}; }); }
+
+    std::pair<int, Card> cards[4];
+};
+
 struct Player
 {
     Player()
         : numStiche(0),
           points(0)
     {}
+
+    static int nextPlayer(int player)
+    {
+        return player == 3 ? 0 : player + 1;
+    }
 
     void reset()
     {
@@ -163,11 +186,8 @@ struct Player
 
         for (auto& card : m_cards)
             card = std::optional<Card>();
-        for (int i = 0; i < maxCards; ++i) {
-            for (int c = 0; c < numPlayers; ++c) {
-                m_stiche[i][c] = std::optional<Card>();
-            }
-        }
+        for (int i = 0; i < maxCards; ++i)
+            m_stiche[i].reset();
     }
 
     void deal(const Card cards[8])
@@ -193,31 +213,30 @@ struct Player
         return false;
     }
 
-    void addStich(Card cards[4])
+    void addStich(Card cards[4], int activePlayer)
     {
         assert(numStiche >= 0 && numStiche < 8);
+        assert(activePlayer >= 0 && activePlayer < numPlayers);
+
         for (int i = 0; i < numPlayers; ++i) {
             points += cards[i].points();
-            m_stiche[numStiche][i] = std::move(cards[i]);
+            m_stiche[numStiche].cards[i] = std::make_pair(activePlayer, std::move(cards[i]));
+            activePlayer = nextPlayer(activePlayer);
         }
         ++numStiche;
     }
 
     bool cardInStiche(const Card &card)
     {
-        for (int i = 0; i < maxCards; ++i) {
-            if (!m_stiche[i][0])
-                return false;
-            for (int c = 0; c < numPlayers; ++c) {
-                if (*m_stiche[i][c] == card)
-                    return true;
-            }
+        for (int i = 0; i < numStiche; ++i) {
+            if (m_stiche[i].contains(card))
+                return true;
         }
 
         return false;
     }
 
-    const std::optional<Card> *lastStich() const
+    const Stich &lastStich() const
     {
         assert(numStiche > 0);
         return m_stiche[numStiche - 1];
@@ -228,7 +247,7 @@ struct Player
     int numStiche;
     int points;
     std::optional<Card> m_cards[maxCards];
-    std::optional<Card> m_stiche[maxCards][numPlayers];
+    Stich m_stiche[maxCards];
 };
 
 struct DiscardPile
@@ -385,8 +404,12 @@ struct Game
                 topPlayer = i;
         }
 
-        players[topPlayer].addStich(pile);
+        players[topPlayer].addStich(pile, m_activePlayer);
+
+        // remember the player who did the last stich
         m_lastStichPlayer = topPlayer;
+        // the player to come out is the player who scored last
+        m_activePlayer = topPlayer;
 
         ++numStiche;
     }

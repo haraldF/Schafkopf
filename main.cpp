@@ -20,10 +20,10 @@ struct CLI
     {
         game.putCard(c);
         if (game.activePile.numCards == 0) {
-            const std::optional<Card>* lastStich = game.lastStichPlayer().lastStich();
+            const Stich& lastStich = game.lastStichPlayer().lastStich();
             std::cout << "Stich:" << std::endl;
             for (int i = 0; i < numPlayers; ++i)
-                std::cout << "    " << *lastStich[i] << std::endl;
+                std::cout << "    " << lastStich.cards[i].second << std::endl;
             std::cout << "Stich went to player " << int(game.m_lastStichPlayer) + 1 << std::endl;
         } else {
             printActivePile();
