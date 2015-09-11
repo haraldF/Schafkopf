@@ -1,4 +1,4 @@
-#include "Schafkopf.h"
+#include <Schafkopf.h>
 
 #include <gtest/gtest.h>
 

@@ -1,6 +1,6 @@
-#include "Schafkopf.h"
-#include "RandomAi.h"
-#include "ObserverAi.h"
+#include <Schafkopf.h>
+#include <RandomAi.h>
+#include <ObserverAi.h>
 
 using namespace SchafKopf;
 
