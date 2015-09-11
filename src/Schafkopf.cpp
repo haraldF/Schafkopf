@@ -111,38 +111,48 @@ void Game::putCard(int c)
         doStich();
 }
 
+int Game::trumpScore(const Card& card) const
+{
+    assert(isTrump(card));
+
+    switch (gameType) {
+    case Solo:
+    case SauSpiel:
+        if (card.cardType == Ober)
+            return numCardTypes + 5 + card.color;
+        if (card.cardType == Unter)
+            return numCardTypes + 1 + card.color;
+        return card.cardType;
+    case Wenz:
+    case Geier:
+        return card.color;
+    case FarbWenz:
+        if (card.cardType == Unter)
+            return numCardTypes + 1 + card.color;
+        return card.cardType;
+    case FarbGeier:
+        if (card.cardType == Ober)
+            return numCardTypes + 1 + card.color;
+        return card.cardType;
+    }
+
+    assert(false);
+    return 0;
+}
+
 bool Game::sticht(const Card& card, const Card& other) const
 {
-    // ### other game types
-    if (card.cardType == CardType::Ober) {
-        if (other.cardType == CardType::Ober)
-            return other.color < card.color;
-        else
-            return false;
-    }
+    const bool cardIsTrump = isTrump(card);
+    const bool otherIsTrump = isTrump(other);
 
-    if (card.cardType == CardType::Unter) {
-        if (other.cardType == CardType::Ober)
-            return true;
-        else if (other.cardType == CardType::Unter)
-            return other.color < card.color;
-        else
-            return false;
-    }
-
-    if (card.color == gameColor) {
-        if (other.cardType == CardType::Ober || other.cardType == CardType::Unter)
-            return true;
-        if (other.color == gameColor)
-            return other.cardType < card.cardType;
-        else
-            return false;
-    }
-
-    if (other.cardType == CardType::Ober || other.cardType == CardType::Unter || other.color == gameColor)
+    if (cardIsTrump && otherIsTrump)
+        return trumpScore(card) < trumpScore(other);
+    else if (cardIsTrump && !otherIsTrump)
+        return false;
+    else if (!cardIsTrump && otherIsTrump)
         return true;
-    if (card.color == other.color)
-        return other.cardType < card.cardType;
+    else if (card.color == other.color)
+        return other.cardType > card.cardType;
     return false;
 }
 

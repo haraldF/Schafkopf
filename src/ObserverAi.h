@@ -74,7 +74,8 @@ struct GameInfo
     {
         if (m_game.isTrump(card))
             --trumpsLeft;
-        --colorsLeft[card.color];
+        else
+            --colorsLeft[card.color];
     }
 
     int trumpCount;

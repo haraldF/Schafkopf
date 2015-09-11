@@ -46,44 +46,44 @@ private:
 
 enum Color
 {
-    Eichel,
-    Gras,
+    Schelln,
     Herz,
-    Schelln
+    Gras,
+    Eichel
 };
 
 constexpr int numColors = 4;
 
 static const char *colorNames[numColors] = {
-    "Eichel",
-    "Gras",
+    "Schelln",
     "Herz",
-    "Schelln"
+    "Gras",
+    "Eichel"
 };
 
 enum CardType
 {
-    Ass,
-    Zehner,
-    Koenig,
-    Ober,
-    Unter,
-    Neuner,
+    Siebner,
     Achter,
-    Siebner
+    Neuner,
+    Unter,
+    Ober,
+    Koenig,
+    Zehner,
+    Ass
 };
 
 constexpr int numCardTypes = 8;
 
 static const char *cardTypeNames[numCardTypes] = {
-    "Ass",
-    "Zehner",
-    "Koenig",
-    "Ober",
-    "Unter",
-    "Neuner",
+    "Siebner",
     "Achter",
-    "Siebner"
+    "Neuner",
+    "Unter",
+    "Ober",
+    "Koenig",
+    "Zehner",
+    "Ass"
 };
 
 struct CardPoint
@@ -93,14 +93,14 @@ struct CardPoint
 };
 
 static const CardPoint cardPoints[] = {
-    { CardType::Ass, 11 },
-    { CardType::Zehner, 10 },
-    { CardType::Koenig, 4 },
-    { CardType::Ober, 3 },
-    { CardType::Unter, 2 },
-    { CardType::Neuner, 0 },
+    { CardType::Siebner, 0 },
     { CardType::Achter, 0 },
-    { CardType::Siebner, 0 }
+    { CardType::Neuner, 0 },
+    { CardType::Unter, 2 },
+    { CardType::Ober, 3 },
+    { CardType::Koenig, 4 },
+    { CardType::Zehner, 10 },
+    { CardType::Ass, 11 }
 };
 
 static constexpr int numPlayers = 4;
@@ -119,7 +119,7 @@ struct Card
 
     int points() const
     {
-        assert(cardType >= Ass && cardType <= Siebner);
+        assert(cardType >= Siebner && cardType <= Ass);
         return cardPoints[cardType].value;
     }
 
@@ -389,6 +389,7 @@ struct Game
 
     bool sticht(const Card& card, const Card& other) const;
 
+    int trumpScore(const Card& card) const;
     bool isTrump(const Card& card) const;
 
     bool hasTrump(const Player& player) const
