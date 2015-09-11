@@ -38,7 +38,7 @@ struct PlayerInfo
 
 struct GameInfo
 {
-    GameInfo(const Game& game)
+    GameInfo(const Game& game, const Player& player)
         : m_game(game)
     {
         switch (m_game.gameType) {
@@ -68,6 +68,12 @@ struct GameInfo
         // nothing played yet :)
         trumpsLeft = trumpCount;
         colorsLeft[Eichel] = colorsLeft[Gras] = colorsLeft[Herz] = colorsLeft[Schelln] = colorCardCount;
+
+        // remove our cards from game info
+        for (const auto &card : player.m_cards) {
+            assert(card);
+            cardPlayed(*card);
+        }
     }
 
     void cardPlayed(const Card& card)
@@ -93,7 +99,7 @@ public:
     ObserverAi(const Game& game, const Player& player)
         : m_player(player),
           m_game(game),
-          m_gameInfo(game)
+          m_gameInfo(game, player)
     {
     }
 
