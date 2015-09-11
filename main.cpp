@@ -1,5 +1,6 @@
 #include "Schafkopf.h"
 #include "RandomAi.h"
+#include "ObserverAi.h"
 
 using namespace SchafKopf;
 
@@ -90,6 +91,21 @@ struct CLI
         return ai0;
     }
 
+    void printObservations() const
+    {
+        std::cout << "Observer AI:" << std::endl;
+        for (int i = 1; i < 4; ++i) {
+            std::cout << "    Player " << i + 1 << ":";
+            if (ai0.m_playerInfo[i].trumpFree != PlayerInfo::Unknown)
+                std::cout << " trump free: " << PlayerInfo::toString(ai0.m_playerInfo[i].trumpFree);
+            for (int c = 0; c < numColors; ++c) {
+                if (ai0.m_playerInfo[i].colorFree[c] != PlayerInfo::Unknown)
+                    std::cout << " " << colorNames[c] << " free: " << PlayerInfo::toString(ai0.m_playerInfo[i].colorFree[c]);
+            }
+            std::cout << std::endl;
+        }
+    }
+
     void start()
     {
         printCards();
@@ -115,13 +131,19 @@ struct CLI
                     playCard(card);
                 }
             } else if (line == "a") {
-                int card = aiForPlayer(game.m_activePlayer).doPlayCard(game.activePile);
-                std::cout << "Player " << int(game.m_activePlayer) + 1 << " plays " << *game.players[game.m_activePlayer].m_cards[card] << std::endl;
-                playCard(card);
+                if (game.m_activePlayer == 0) {
+                    std::cout << "No AI for Player 1" << std::endl;
+                } else {
+                    int card = aiForPlayer(game.m_activePlayer).doPlayCard(game.activePile);
+                    std::cout << "Player " << int(game.m_activePlayer) + 1 << " plays " << *game.players[game.m_activePlayer].m_cards[card] << std::endl;
+                    playCard(card);
+                }
             } else if (line == "r") {
                 std::cout << "Reset game" << std::endl;
                 newGame();
                 printCards();
+            } else if (line == "o") {
+                printObservations();
             } else {
                 std::cout << "Unknown command: " << line << std::endl;
             }
@@ -132,7 +154,7 @@ struct CLI
     }
 
     Game game;
-    RandomAi ai0;
+    ObserverAi ai0;
     RandomAi ai1;
     RandomAi ai2;
     RandomAi ai3;

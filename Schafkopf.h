@@ -301,6 +301,18 @@ struct ActivePile
         numCards = 0;
     }
 
+    const Card& lastPlayedCard() const
+    {
+        assert(numCards > 0);
+        return *m_cards[numCards - 1];
+    }
+
+    const Card& firstPlayedCard() const
+    {
+        assert(numCards > 0);
+        return *m_cards[0];
+    }
+
     int firstPlayer;
     int numCards;
     std::optional<Card> m_cards[numPlayers];
@@ -311,6 +323,7 @@ class AI
 public:
     virtual void cardPlayed(const ActivePile& pile, int activePlayer) = 0;
     virtual int doPlayCard(const ActivePile& pile) = 0;
+    virtual void reset() = 0;
 };
 
 struct Game
