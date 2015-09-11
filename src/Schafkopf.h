@@ -315,6 +315,11 @@ struct ActivePile
         return *m_cards[0];
     }
 
+    bool isEmpty() const
+    {
+        return numCards == 0;
+    }
+
     int firstPlayer;
     int numCards;
     std::optional<Card> m_cards[numPlayers];
@@ -326,6 +331,16 @@ public:
     virtual void cardPlayed(const ActivePile& pile, int activePlayer) = 0;
     virtual int doPlayCard(const ActivePile& pile) = 0;
     virtual void reset() = 0;
+};
+
+static const char *GameTypeNames[] =
+{
+    "Sauspiel",
+    "Farbgeier",
+    "Geier",
+    "Farbwenz",
+    "Wenz",
+    "Solo"
 };
 
 struct Game

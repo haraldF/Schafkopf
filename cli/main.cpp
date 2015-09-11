@@ -46,12 +46,23 @@ struct CLI
             std::cout << "Game over" << std::endl;
             for (int i = 0; i < numPlayers; ++i)
                 std::cout << "    Player " << i + 1 << ": " << game.players[i].points << " points" << std::endl;
+
+            // ### TODO - support sauspiel
+            if (game.players[0].points > 60)
+                std::cout << "Player 1 won!" << std::endl;
+            else
+                std::cout << "Player 1 lost!" << std::endl;
             game.reset();
         }
     }
 
     void printCards() const
     {
+        std::cout << "Game: ";
+        if (game.gameType != Game::Wenz && game.gameType != Game::Geier)
+            std::cout << colorNames[game.gameColor] << " ";
+        std::cout << GameTypeNames[game.gameType] << std::endl;
+
         for (int i = 0; i < numPlayers; ++i) {
             std::cout << "Player " << i + 1 << " (" << game.players[i].points << ")";
             if (game.m_activePlayer == i)
@@ -108,6 +119,30 @@ struct CLI
         }
     }
 
+    static Color toColorId(const std::string &color)
+    {
+        if (color == "schelln")
+            return Color::Schelln;
+        if (color == "herz")
+            return Color::Herz;
+        if (color == "gras")
+            return Color::Gras;
+        return Color::Eichel;
+    }
+
+    static Game::Type toGameType(const std::string& line)
+    {
+        if (line == "geier")
+            return Game::Geier;
+        if (line == "wenz")
+            return Game::Wenz;
+        if (line == "farbwenz")
+            return Game::FarbWenz;
+        if (line == "farbgeier")
+            return Game::FarbGeier;
+        return Game::Solo;
+    }
+
     void start()
     {
         std::cout << "Schafkopf CLI v" << std::to_string(version) << ". Enter '?' for help." << std::endl;
@@ -146,8 +181,31 @@ struct CLI
                 printCards();
             } else if (line == "o") {
                 printObservations();
+            } else if (line == "schelln" || line == "herz" || line == "gras" || line == "eichel") {
+                if (game.numStiche != 0 || !game.activePile.isEmpty()) {
+                    std::cout << "cannot change color during running game" << std::endl;
+                } else {
+                    game.gameColor = toColorId(line);
+                    std::cout << "game color changed to " << line << std::endl;
+                }
+            } else if (line == "geier" || line == "wenz" || line == "farbwenz" || line == "farbgeier" || line == "solo") {
+                if (game.numStiche != 0 || !game.activePile.isEmpty()) {
+                    std::cout << "cannot change type during running game" << std::endl;
+                } else {
+                    game.gameType = toGameType(line);
+                    std::cout << "game type changed to " << line << std::endl;
+                }
             } else if (line == "?") {
                 std::cout << "Commands:" << std::endl
+                          << "    'schelln',"  << std::endl
+                          << "    'herz',"  << std::endl
+                          << "    'gras',"  << std::endl
+                          << "    'eichel'  : Color of the game" << std::endl
+                          << "    'geier'," << std::endl
+                          << "    'wenz'," << std::endl
+                          << "    'farbwenz'," << std::endl
+                          << "    'farbgeier'," << std::endl
+                          << "    'solo'    : Type of the game" << std::endl
                           << "    '1' - '8' : Play the card with that number" << std::endl
                           << "    'p'       : Print current cards" << std::endl
                           << "    'pp'      : Print current active pile" << std::endl
