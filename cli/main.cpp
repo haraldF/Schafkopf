@@ -4,6 +4,8 @@
 
 using namespace SchafKopf;
 
+static constexpr int version = 1;
+
 struct CLI
 {
     CLI()
@@ -108,7 +110,7 @@ struct CLI
 
     void start()
     {
-        printCards();
+        std::cout << "Schafkopf CLI v" << std::to_string(version) << ". Enter '?' for help." << std::endl;
         printPrompt();
 
         std::string line;
@@ -144,6 +146,15 @@ struct CLI
                 printCards();
             } else if (line == "o") {
                 printObservations();
+            } else if (line == "?") {
+                std::cout << "Commands:" << std::endl
+                          << "    '1' - '8' : Play the card with that number" << std::endl
+                          << "    'p'       : Print current cards" << std::endl
+                          << "    'pp'      : Print current active pile" << std::endl
+                          << "    'a'       : Let AI play the next card" << std::endl
+                          << "    'r'       : Reset the game" << std::endl
+                          << "    'o'       : Print observations made so far" << std::endl
+                          << "    'q'       : Quit" << std::endl;
             } else {
                 std::cout << "Unknown command: " << line << std::endl;
             }
