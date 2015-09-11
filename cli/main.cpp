@@ -2,6 +2,11 @@
 #include <RandomAi.h>
 #include <ObserverAi.h>
 
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
 using namespace SchafKopf;
 
 static constexpr int version = 1;
@@ -143,83 +148,97 @@ struct CLI
         return Game::Solo;
     }
 
+    static bool getLine(std::string& line)
+    {
+        return bool(std::getline(std::cin, line));
+    }
+
+    bool handleCommand(const std::string& line)
+    {
+        if (line == "q")
+            return false;
+
+        if (line == "p") {
+            printCards();
+        } else if (line == "pp") {
+            printActivePile();
+        } else if (line == "1" || line == "2" || line == "3" || line == "4"
+                  || line == "5" || line == "6" || line == "7" || line == "8") {
+            char card = line.at(0) - '1';
+            if (!game.activePlayer().m_cards[int(card)]) {
+                std::cout << "No such card: " << card << std::endl;
+            } else if (!game.canPutCard(card)) {
+                std::cout << "Cannot play card " << card << std::endl;
+            } else {
+                playCard(card);
+            }
+        } else if (line == "a") {
+            if (game.m_activePlayer == 0) {
+                std::cout << "No AI for Player 1" << std::endl;
+            } else {
+                int card = aiForPlayer(game.m_activePlayer).doPlayCard(game.activePile);
+                std::cout << "Player " << int(game.m_activePlayer) + 1 << " plays " << *game.players[game.m_activePlayer].m_cards[card] << std::endl;
+                playCard(card);
+            }
+        } else if (line == "r") {
+            std::cout << "Reset game" << std::endl;
+            newGame();
+            printCards();
+        } else if (line == "o") {
+            printObservations();
+        } else if (line == "schelln" || line == "herz" || line == "gras" || line == "eichel") {
+            if (game.numStiche != 0 || !game.activePile.isEmpty()) {
+                std::cout << "cannot change color during running game" << std::endl;
+            } else {
+                game.gameColor = toColorId(line);
+                std::cout << "game color changed to " << line << std::endl;
+            }
+        } else if (line == "geier" || line == "wenz" || line == "farbwenz" || line == "farbgeier" || line == "solo") {
+            if (game.numStiche != 0 || !game.activePile.isEmpty()) {
+                std::cout << "cannot change type during running game" << std::endl;
+            } else {
+                game.gameType = toGameType(line);
+                std::cout << "game type changed to " << line << std::endl;
+            }
+        } else if (line == "?") {
+            std::cout << "Commands:" << std::endl
+                      << "    'schelln',"  << std::endl
+                      << "    'herz',"  << std::endl
+                      << "    'gras',"  << std::endl
+                      << "    'eichel'  : Color of the game" << std::endl
+                      << "    'geier'," << std::endl
+                      << "    'wenz'," << std::endl
+                      << "    'farbwenz'," << std::endl
+                      << "    'farbgeier'," << std::endl
+                      << "    'solo'    : Type of the game" << std::endl
+                      << "    '1' - '8' : Play the card with that number" << std::endl
+                      << "    'p'       : Print current cards" << std::endl
+                      << "    'pp'      : Print current active pile" << std::endl
+                      << "    'a'       : Let AI play the next card" << std::endl
+                      << "    'r'       : Reset the game" << std::endl
+                      << "    'o'       : Print observations made so far" << std::endl
+                      << "    'q'       : Quit" << std::endl;
+        } else {
+            std::cout << "Unknown command: " << line << std::endl;
+        }
+
+        printPrompt();
+        return true;
+    }
+
     void start()
     {
         std::cout << "Schafkopf CLI v" << std::to_string(version) << ". Enter '?' for help." << std::endl;
         printPrompt();
 
+#ifndef EMSCRIPTEN
         std::string line;
-        while (std::getline(std::cin, line)) {
-            if (line == "q")
+        while (getLine(line)) {
+            if (!handleCommand(line))
                 break;
-
-            if (line == "p") {
-                printCards();
-            } else if (line == "pp") {
-                printActivePile();
-            } else if (line == "1" || line == "2" || line == "3" || line == "4"
-                      || line == "5" || line == "6" || line == "7" || line == "8") {
-                char card = line.at(0) - '1';
-                if (!game.activePlayer().m_cards[int(card)]) {
-                    std::cout << "No such card: " << card << std::endl;
-                } else if (!game.canPutCard(card)) {
-                    std::cout << "Cannot play card " << card << std::endl;
-                } else {
-                    playCard(card);
-                }
-            } else if (line == "a") {
-                if (game.m_activePlayer == 0) {
-                    std::cout << "No AI for Player 1" << std::endl;
-                } else {
-                    int card = aiForPlayer(game.m_activePlayer).doPlayCard(game.activePile);
-                    std::cout << "Player " << int(game.m_activePlayer) + 1 << " plays " << *game.players[game.m_activePlayer].m_cards[card] << std::endl;
-                    playCard(card);
-                }
-            } else if (line == "r") {
-                std::cout << "Reset game" << std::endl;
-                newGame();
-                printCards();
-            } else if (line == "o") {
-                printObservations();
-            } else if (line == "schelln" || line == "herz" || line == "gras" || line == "eichel") {
-                if (game.numStiche != 0 || !game.activePile.isEmpty()) {
-                    std::cout << "cannot change color during running game" << std::endl;
-                } else {
-                    game.gameColor = toColorId(line);
-                    std::cout << "game color changed to " << line << std::endl;
-                }
-            } else if (line == "geier" || line == "wenz" || line == "farbwenz" || line == "farbgeier" || line == "solo") {
-                if (game.numStiche != 0 || !game.activePile.isEmpty()) {
-                    std::cout << "cannot change type during running game" << std::endl;
-                } else {
-                    game.gameType = toGameType(line);
-                    std::cout << "game type changed to " << line << std::endl;
-                }
-            } else if (line == "?") {
-                std::cout << "Commands:" << std::endl
-                          << "    'schelln',"  << std::endl
-                          << "    'herz',"  << std::endl
-                          << "    'gras',"  << std::endl
-                          << "    'eichel'  : Color of the game" << std::endl
-                          << "    'geier'," << std::endl
-                          << "    'wenz'," << std::endl
-                          << "    'farbwenz'," << std::endl
-                          << "    'farbgeier'," << std::endl
-                          << "    'solo'    : Type of the game" << std::endl
-                          << "    '1' - '8' : Play the card with that number" << std::endl
-                          << "    'p'       : Print current cards" << std::endl
-                          << "    'pp'      : Print current active pile" << std::endl
-                          << "    'a'       : Let AI play the next card" << std::endl
-                          << "    'r'       : Reset the game" << std::endl
-                          << "    'o'       : Print observations made so far" << std::endl
-                          << "    'q'       : Quit" << std::endl;
-            } else {
-                std::cout << "Unknown command: " << line << std::endl;
-            }
-
-            printPrompt();
         }
         std::cout << std::endl;
+#endif
     }
 
     Game game;
@@ -228,6 +247,29 @@ struct CLI
     RandomAi ai2;
     RandomAi ai3;
 };
+
+#ifdef EMSCRIPTEN
+EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent* ev, void* userData)
+{
+    static std::string lineBuffer;
+
+    CLI* cli = reinterpret_cast<CLI*>(userData);
+
+    if (ev->which == 13) {
+        cli->handleCommand(lineBuffer);
+        lineBuffer = std::string();
+    } else {
+        lineBuffer += char(ev->which);
+    }
+
+    return 1;
+}
+
+void main_loop()
+{
+    // std::cout << "main loop" << std::endl;
+}
+#endif
 
 int main()
 {
@@ -256,8 +298,16 @@ int main()
     std::cout << (int)boost::math::binomial_coefficient<double>(32, 8) << std::endl;
     */
 
+
     CLI cli;
     cli.start();
+
+#ifdef EMSCRIPTEN
+    emscripten_set_keypress_callback(0, &cli, 1, key_callback);
+    emscripten_set_main_loop(main_loop, 0, true);
+#endif
+
+    std::cout << "Bye." << std::endl;
 
     return 0;
 }
