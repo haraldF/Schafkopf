@@ -187,7 +187,8 @@ struct PlayerId
 struct Player
 {
     Player()
-        : numStiche(0),
+        : id(-1),
+          numStiche(0),
           points(0)
     {}
 
@@ -256,6 +257,7 @@ struct Player
 
     static constexpr int maxCards = 8;
 
+    int id;
     int numStiche;
     int points;
     std::optional<Card> m_cards[maxCards];
@@ -352,12 +354,7 @@ struct Game
     Type gameType;
     Color gameColor;
 
-    Game()
-        : discardPile{players}
-    {
-        ais[0] = ais[1] = ais[2] = ais[3] = nullptr;
-        reset();
-    }
+    Game();
 
     void reset();
 
@@ -392,26 +389,7 @@ struct Game
 
     bool sticht(const Card& card, const Card& other) const;
 
-    bool isTrump(const Card& card) const
-    {
-        switch (gameType) {
-        case Solo:
-        case SauSpiel:
-            return card.cardType == CardType::Ober
-                    || card.cardType == CardType::Unter
-                    || card.color == gameColor;
-        case Wenz:
-            return card.cardType == CardType::Unter;
-        case FarbWenz:
-            return card.cardType == CardType::Unter
-                    || card.color == gameColor;
-        case Geier:
-            return card.cardType == CardType::Ober;
-        case FarbGeier:
-            return card.cardType == CardType::Ober
-                    || card.color == gameColor;
-        }
-    }
+    bool isTrump(const Card& card) const;
 
     bool hasTrump(const Player& player) const
     {

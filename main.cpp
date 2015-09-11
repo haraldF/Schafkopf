@@ -7,10 +7,10 @@ using namespace SchafKopf;
 struct CLI
 {
     CLI()
-        : ai0{game, 0},
-          ai1{game, 1},
-          ai2{game, 2},
-          ai3{game, 3}
+        : ai0{game, game.players[0]},
+          ai1{game, game.players[1]},
+          ai2{game, game.players[2]},
+          ai3{game, game.players[3]}
     {
         newGame();
     }
