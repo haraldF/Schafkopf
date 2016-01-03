@@ -131,6 +131,39 @@ public:
         }
     }
 
+    int suggestCard(const ActivePile& pile)
+    {
+        struct RemainingCards
+        {
+            Card card;
+            bool available = false;
+        };
+
+        RemainingCards remaining[numCardTypes * numColors];
+        for (int i = 0; i < numCardTypes * numColors; ++i)
+        {
+            Card card = remaining[i].card = Card::fromHashValue(i);
+            if (!m_game.discardPile.contains(card) && !m_player.hasCard(card) && !pile.contains(card))
+                remaining[i].available = true;
+        }
+
+        for (int i = 0; i < Player::maxCards; ++i) {
+            if (!m_player.m_cards[i])
+                continue;
+            if (!m_game.canPutCard(i))
+                continue;
+
+            ActivePile tmpPile = m_game.activePile;
+            tmpPile.put(*m_player.m_cards[i], m_player.id);
+
+            for (int i = tmpPile.numCards; i < 4; ++i) {
+
+            }
+        }
+
+        return -1; // ### TODO
+    }
+
     int doPlayCard(const ActivePile&) override
     {
         assert(false);

@@ -28,13 +28,9 @@ void Game::reset()
         players[i].deal(deck.begin() + (i * 8));
 }
 
-bool Game::canPutCard(int c) const
+bool Game::canPutCard(const Card& card, const ActivePile& pile, const Player& player) const
 {
-    assert(activePlayer().m_cards[c]);
-
-    const Card &card = *activePlayer().m_cards[c];
-
-    if (activePile.numCards == 0) {
+    if (pile.numCards == 0) {
 
         if (gameType == SauSpiel) {
             // only one rule for first card - if it's a Sauspiel, one cannot
@@ -46,9 +42,9 @@ bool Game::canPutCard(int c) const
         return true;
     }
 
-    const Card &firstCard = firstPileCard();
+    const Card &firstCard = pile.firstPlayedCard();
     if (isTrump(firstCard)) {
-        if (hasTrump(activePlayer()))
+        if (hasTrump(player))
             return isTrump(card);
         if (gameType == SauSpiel) {
             // ### TODO - cannot play Sau
@@ -56,7 +52,7 @@ bool Game::canPutCard(int c) const
         return true; // trump is played but we don't have trump - play anything
     }
 
-    if (hasColor(activePlayer(), firstCard.color)) {
+    if (hasColor(player, firstCard.color)) {
         if (gameType == SauSpiel) {
             // ### TODO - must play Sau
         }
@@ -64,6 +60,14 @@ bool Game::canPutCard(int c) const
     }
 
     return true;
+}
+
+bool Game::canPutCard(int c) const
+{
+    assert(activePlayer().m_cards[c]);
+
+    const Card &card = *activePlayer().m_cards[c];
+    return canPutCard(card, activePile, activePlayer());
 }
 
 void Game::doStich()

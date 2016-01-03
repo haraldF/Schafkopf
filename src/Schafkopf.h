@@ -125,6 +125,19 @@ struct Card
 
     bool operator==(const Card& other) const { return cardType == other.cardType && color == other.color; }
     bool operator!=(const Card& other) const { return !(*this == other); }
+
+    int hashValue() const
+    {
+        return (color * numCardTypes) + cardType;
+    }
+
+    static Card fromHashValue(int value)
+    {
+        Card result;
+        result.color = static_cast<Color>(value % 4);
+        result.cardType = static_cast<CardType>(value - (result.color * numCardTypes));
+        return result;
+    }
 };
 
 struct Deck
@@ -320,6 +333,15 @@ struct ActivePile
         return numCards == 0;
     }
 
+    bool contains(const Card& card) const
+    {
+        for (int i = 0; i < numCards; ++i) {
+            if (*m_cards[i] == card)
+                return true;
+        }
+        return false;
+    }
+
     int firstPlayer;
     int numCards;
     std::optional<Card> m_cards[numPlayers];
@@ -328,6 +350,12 @@ struct ActivePile
 class AI
 {
 public:
+    AI() {}
+    virtual ~AI() {}
+
+    AI(const AI&) = delete;
+    AI& operator=(const AI&) = delete;
+
     virtual void cardPlayed(const ActivePile& pile, int activePlayer) = 0;
     virtual int doPlayCard(const ActivePile& pile) = 0;
     virtual void reset() = 0;
@@ -394,6 +422,8 @@ struct Game
         return *activePile.m_cards[0];
     }
 
+    // true if the card can be played
+    bool canPutCard(const Card& card, const ActivePile& pile, const Player& player) const;
     bool canPutCard(int c) const;
 
     // figure out who won the round
