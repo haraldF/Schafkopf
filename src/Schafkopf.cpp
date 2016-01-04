@@ -30,6 +30,8 @@ void Game::reset()
 
 bool Game::canPutCard(const Card& card, const ActivePile& pile, const Player& player) const
 {
+    const bool cardIsTrump = isTrump(card);
+
     if (pile.numCards == 0) {
 
         if (gameType == SauSpiel) {
@@ -45,7 +47,7 @@ bool Game::canPutCard(const Card& card, const ActivePile& pile, const Player& pl
     const Card &firstCard = pile.firstPlayedCard();
     if (isTrump(firstCard)) {
         if (hasTrump(player))
-            return isTrump(card);
+            return cardIsTrump;
         if (gameType == SauSpiel) {
             // ### TODO - cannot play Sau
         }
@@ -56,6 +58,9 @@ bool Game::canPutCard(const Card& card, const ActivePile& pile, const Player& pl
         if (gameType == SauSpiel) {
             // ### TODO - must play Sau
         }
+        // cannot play trump, as we have another color of that type
+        if (cardIsTrump)
+            return false;
         return card.color == firstCard.color;
     }
 
@@ -211,5 +216,25 @@ double Game::passProbabilty(const Player& player, const Card& card) const
 std::ostream&operator<<(std::ostream& os, const SchafKopf::Card& dt)
 {
     os << SchafKopf::colorNames[dt.color] << ' ' << SchafKopf::cardTypeNames[dt.cardType];
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const SchafKopf::Stich& s)
+{
+    os << "Stich:" << std::endl;
+    for (int i = 0; i < SchafKopf::numPlayers; ++i)
+        os << "    P" << s.cards[i].first + 1 << ": " << s.cards[i].second << std::endl;
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const SchafKopf::ActivePile& p)
+{
+    os << "ActivePile, first Player " << p.firstPlayer + 1 << std::endl;
+    for (int i = 0; i < SchafKopf::numPlayers; ++i) {
+        if (p.m_cards[i])
+            os << "    " << *p.m_cards[i] << std::endl;
+        else
+            os << "    <empty>" << std::endl;
+    }
     return os;
 }

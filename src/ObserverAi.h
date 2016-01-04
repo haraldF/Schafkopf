@@ -15,8 +15,13 @@ struct PlayerInfo
     };
 
     PlayerInfo()
-        : trumpFree(Unknown)
     {
+        reset();
+    }
+
+    void reset()
+    {
+        trumpFree = Unknown;
         colorFree[Eichel] = colorFree[Gras] = colorFree[Schelln] = colorFree[Herz] = Unknown;
     }
 
@@ -41,12 +46,17 @@ struct GameInfo
     GameInfo(const Game& game, const Player& player)
         : m_game(game)
     {
+        reset(player);
+    }
+
+    void reset(const Player& player)
+    {
         switch (m_game.gameType) {
         case Game::Solo:
         case Game::SauSpiel:
             // trumps is all colors + other three Unter + other three Ober
             trumpCount = numCardTypes + 3 + 3;
-            // color cards are all color withoug Unter and Ober
+            // color cards are all color without Unter and Ober
             colorCardCount = numCardTypes - 2;
             break;
         case Game::Wenz:
@@ -101,29 +111,50 @@ public:
           m_game(game),
           m_gameInfo(game, player)
     {
+        updatePlayerInfo();
+    }
+
+    void setOthersTrumpFree()
+    {
+        for (int i = 0; i < numPlayers; ++i) {
+            if (i == m_player.id)
+                continue;
+            m_playerInfo[i].trumpFree = PlayerInfo::Yes;
+        }
+    }
+
+    void setOthersColorFree(Color color)
+    {
+        for (int i = 0; i < numPlayers; ++i) {
+            if (i == m_player.id)
+                continue;
+            m_playerInfo[i].colorFree[color] = PlayerInfo::Yes;
+        }
     }
 
     void cardPlayed(const ActivePile& pile, int activePlayer) override
     {
         const Card &playedCard = pile.lastPlayedCard();
         const Card &firstPlayedCard = pile.firstPlayedCard();
+        const bool isTrump = m_game.isTrump(playedCard);
+
+        if (activePlayer == m_player.id) {
+            updatePlayerInfo();
+            return; // we now already know everything about ourselves
+        }
 
         m_gameInfo.cardPlayed(playedCard);
-        if (m_gameInfo.trumpCount == 0)
-            m_playerInfo[0].trumpFree = m_playerInfo[1].trumpFree
-                    = m_playerInfo[2].trumpFree = m_playerInfo[3].trumpFree = PlayerInfo::Yes;
-        if (m_gameInfo.colorsLeft[playedCard.color] == 0)
-            m_playerInfo[0].colorFree[playedCard.color] = m_playerInfo[1].colorFree[playedCard.color]
-                    = m_playerInfo[2].colorFree[playedCard.color] = m_playerInfo[3].colorFree[playedCard.color] = PlayerInfo::Yes;
-
-        if (activePlayer == m_player.id)
-            return;
+        if (isTrump && m_gameInfo.trumpCount == 0)
+            setOthersTrumpFree();
+        if (!isTrump && m_gameInfo.colorsLeft[playedCard.color] == 0)
+            setOthersColorFree(playedCard.color);
 
         if (pile.numCards <= 1)
             return; // ### TODO - what assumptions can we make?
 
+        // if a player didn't play according to the first card, he must be free of that type of card
         if (m_game.isTrump(firstPlayedCard)) {
-            if (!m_game.isTrump(playedCard))
+            if (!isTrump)
                 m_playerInfo[activePlayer].trumpFree = PlayerInfo::Yes;
         } else {
             if (m_game.isTrump(playedCard) || playedCard.color != firstPlayedCard.color)
@@ -169,9 +200,33 @@ public:
         assert(false);
     }
 
+    void updatePlayerInfo()
+    {
+        // record what we already know from our own colors
+        m_playerInfo[m_player.id].trumpFree = PlayerInfo::Yes;
+        m_playerInfo[m_player.id].colorFree[Eichel]
+                = m_playerInfo[m_player.id].colorFree[Gras]
+                = m_playerInfo[m_player.id].colorFree[Schelln]
+                = m_playerInfo[m_player.id].colorFree[Herz] = PlayerInfo::Yes;
+        for (const auto& card : m_player.m_cards) {
+            if (!card)
+                continue;
+
+            const Card &c = *card;
+            if (m_game.isTrump(c)) {
+                m_playerInfo[m_player.id].trumpFree = PlayerInfo::No;
+            } else {
+                m_playerInfo[m_player.id].colorFree[c.color] = PlayerInfo::No;
+            }
+        }
+    }
+
     void reset() override
     {
-        // ### TODO
+        m_gameInfo.reset(m_player);
+        for (PlayerInfo& playerInfo : m_playerInfo)
+            playerInfo.reset();
+        updatePlayerInfo();
     }
 
     const Player& m_player;
@@ -181,4 +236,29 @@ public:
     PlayerInfo m_playerInfo[4];
 };
 
+}
+
+inline std::ostream& operator<<(std::ostream& os, const SchafKopf::PlayerInfo& info)
+{
+    os << "Trump " << SchafKopf::PlayerInfo::toString(info.trumpFree);
+    for (int i = 0; i < SchafKopf::numColors; ++i)
+        os << " " << SchafKopf::colorNames[i] << "frei " << SchafKopf::PlayerInfo::toString(info.colorFree[i]);
+    return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const SchafKopf::GameInfo& info)
+{
+    os << "Game " << "trumps " << info.trumpsLeft << "/" << info.trumpCount;
+    for (int i = 0; i < SchafKopf::numColors; ++i)
+        os << ", color " << SchafKopf::colorNames[i] << " " << info.colorsLeft[i] << "/" << info.colorCardCount;
+    return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const SchafKopf::ObserverAi& ai)
+{
+    os << "ObserverAi for Player " << ai.m_player.id + 1 << std::endl;
+    os << "    " << ai.m_gameInfo << std::endl;
+    for (int i = 0; i < SchafKopf::numPlayers; ++i)
+        os << "    Player " << i + 1 << ": " << ai.m_playerInfo[i] << std::endl;
+    return os;
 }

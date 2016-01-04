@@ -462,3 +462,5 @@ struct Game
 }
 
 std::ostream& operator<<(std::ostream& os, const SchafKopf::Card& dt);
+std::ostream& operator<<(std::ostream& os, const SchafKopf::Stich& s);
+std::ostream& operator<<(std::ostream& os, const SchafKopf::ActivePile& p);

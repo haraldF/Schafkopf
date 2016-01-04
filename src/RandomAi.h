@@ -20,7 +20,7 @@ public:
     }
 
     // since cards are randomly shuffled, just put the first card that can be played
-    virtual int doPlayCard(const ActivePile& pile) override
+    int doPlayCard(const ActivePile& pile) override
     {
         for (int i = 0; i < Player::maxCards; ++i) {
             if (!m_player.m_cards[i])
@@ -34,7 +34,7 @@ public:
         return 0;
     }
 
-    virtual void reset() override
+    void reset() override
     {
         // we don't have a state, nothing to do
     }

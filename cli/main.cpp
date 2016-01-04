@@ -41,7 +41,7 @@ struct CLI
             const Stich& lastStich = game.lastStichPlayer().lastStich();
             std::cout << "Stich:" << std::endl;
             for (int i = 0; i < numPlayers; ++i)
-                std::cout << "    " << lastStich.cards[i].second << std::endl;
+                std::cout << "    P" << lastStich.cards[i].first + 1 << ": " << lastStich.cards[i].second << std::endl;
             std::cout << "Stich went to player " << int(game.m_lastStichPlayer) + 1 << std::endl;
         } else {
             printActivePile();
@@ -112,7 +112,7 @@ struct CLI
     void printObservations() const
     {
         std::cout << "Observer AI:" << std::endl;
-        for (int i = 1; i < 4; ++i) {
+        for (int i = 0; i < 4; ++i) {
             std::cout << "    Player " << i + 1 << ":";
             if (ai0.m_playerInfo[i].trumpFree != PlayerInfo::Unknown)
                 std::cout << " trump free: " << PlayerInfo::toString(ai0.m_playerInfo[i].trumpFree);
@@ -122,6 +122,18 @@ struct CLI
             }
             std::cout << std::endl;
         }
+    }
+
+    void aiPlay()
+    {
+        if (game.m_activePlayer == 0) {
+            std::cout << "No AI for Player 1" << std::endl;
+            return;
+        }
+
+        int card = aiForPlayer(game.m_activePlayer).doPlayCard(game.activePile);
+        std::cout << "Player " << int(game.m_activePlayer) + 1 << " plays " << *game.players[game.m_activePlayer].m_cards[card] << std::endl;
+        playCard(card);
     }
 
     static Color toColorId(const std::string &color)
@@ -173,13 +185,10 @@ struct CLI
                 playCard(card);
             }
         } else if (line == "a") {
-            if (game.m_activePlayer == 0) {
-                std::cout << "No AI for Player 1" << std::endl;
-            } else {
-                int card = aiForPlayer(game.m_activePlayer).doPlayCard(game.activePile);
-                std::cout << "Player " << int(game.m_activePlayer) + 1 << " plays " << *game.players[game.m_activePlayer].m_cards[card] << std::endl;
-                playCard(card);
-            }
+            aiPlay();
+        } else if (line == "A") {
+            while (game.m_activePlayer != 0)
+                aiPlay();
         } else if (line == "r") {
             std::cout << "Reset game" << std::endl;
             newGame();
@@ -215,6 +224,7 @@ struct CLI
                       << "    'p'       : Print current cards" << std::endl
                       << "    'pp'      : Print current active pile" << std::endl
                       << "    'a'       : Let AI play the next card" << std::endl
+                      << "    'A'       : Let AI play until player's turn" << std::endl
                       << "    'r'       : Reset the game" << std::endl
                       << "    'o'       : Print observations made so far" << std::endl
                       << "    'q'       : Quit" << std::endl;
