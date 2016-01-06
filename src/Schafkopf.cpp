@@ -20,12 +20,21 @@ void Game::reset()
     m_lastStichPlayer = 0;
     numStiche = 0;
 
+    for (auto&& player : players)
+        player.reset();
+
     Card cards[numPlayers];
     activePile.take(cards);
 
     deck.shuffle();
+
     for (int i = 0; i < numPlayers; ++i)
         players[i].deal(deck.begin() + (i * 8));
+
+    for (auto&& ai : ais) {
+        if (ai)
+            ai->reset();
+    }
 }
 
 bool Game::canPutCard(const Card& card, const ActivePile& pile, const Player& player) const
